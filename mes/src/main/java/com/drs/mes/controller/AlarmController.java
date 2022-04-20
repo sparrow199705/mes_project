@@ -53,7 +53,7 @@ public class AlarmController extends BaseController{
         return json;
     }
 
-    //告警明细
+    //告警明细123
     @PostMapping(value = "/getDetailList", produces = "application/json;charset=UTF-8")
     public String getDetailList(@RequestBody Map<String , Object> post) {
         Map<String,Object> map = new HashMap<>();
