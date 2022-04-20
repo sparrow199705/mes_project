@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.drs.mes.mapper.mesBase.ProductionMapper">
+
+    <resultMap id="BaseResultMap" type="com.drs.mes.Pojo.productionProgramme">
+        <id column="id" jdbcType="INTEGER" property="id" />
+        <result column="device_id" jdbcType="VARCHAR" property="deviceId" />
+        <result column="device_name" jdbcType="VARCHAR" property="deviceName" />
+        <result column="process_code" jdbcType="VARCHAR" property="processCode" />
+        <result column="process_name" jdbcType="VARCHAR" property="processName" />
+        <result column="material_code" jdbcType="VARCHAR" property="materialCode" />
+        <result column="material_name" jdbcType="VARCHAR" property="materialName" />
+        <result column="plan_capacity" jdbcType="VARCHAR" property="planCapacity" />
+        <result column="is_deleted" jdbcType="INTEGER" property="isDeleted" />
+        <result column="update_user" jdbcType="VARCHAR" property="updateUser" />
+        <result column="update_time" jdbcType="VARCHAR" property="updateTime" />
+        <result column="production_id" jdbcType="VARCHAR" property="productionId" />
+    </resultMap>
+
+
+    <!-- 新增生产规划 -->
+    <insert id="addProduction" >
+        insert into production_programme (device_id,device_name,process_code,process_name,material_code,material_name,plan_capacity,update_user,update_time,production_id)values
+        (#{deviceId},#{deviceName},#{processCode},#{processName},#{materialCode},#{materialName},#{planCapacity},#{updateUser},#{updateTime},#{productionId})
+    </insert>
+
+    <!-- 生产规划编号是否重复 -->
+    <select id="findProductionById" resultType="java.lang.Integer" >
+        select count(1) from production_programme where process_code = #{processCode} and is_deleted = 0
+    </select>
+
+    <!-- 生产规划开关与删除 -->
+    <update id="switchProduction" >
+        update production_programme set
+        <if test="enable != -99">
+            enable = #{enable}
+        </if>
+        <if test="isDeleted != -99">
+            is_deleted = #{isDeleted}
+        </if>
+        where production_id = #{productionId}
+    </update>
+
+    <!-- 更新生产规划 -->
+    <update id="updateProduction" >
+        update production_programme set device_id = #{deviceId} , device_name = #{deviceName} , process_code = #{processCode} ,
+        process_name = #{processName}  ,material_code = #{materialCode},material_name = #{materialName},plan_capacity = #{planCapacity}, enable = #{enable} ,update_user = #{updateUser} ,
+        update_time=#{updateTime} where production_id = #{production_id}
+    </update>
+    <!-- 是否重复 -->
+    <select id="findUpdate" resultType="java.lang.Integer">
+        select count(1) from production_programme where process_code = #{processCode} and id != #{id} and is_deleted = 0
+    </select>
+
+    <!-- 查询框 -->
+    <select id="SearchProduction" resultType="java.lang.String">
+        <!-- 模糊查询生产规划编号 -->
+        <if test="searchKey == 'processCode'">
+            select process_code as processCode from basic_process where 1=1 and is_deleted = 0
+            <if test="search != null and search != ''">
+                and process_code like '%${search}%'
+            </if>
+            group by process_code
+        </if>
+        <!-- 模糊查询生产规划名称 -->
+        <if test="searchKey == 'processName'">
+            select process_name as processName from basic_process where 1=1 and is_deleted = 0
+            <if test="search != null and search != ''">
+                and process_name like '%${search}%'
+            </if>
+            group by process_name
+        </if>
+    </select>
+
+
+    <!-- 获取生产列表 -->
+    <select id="getProductionList" resultMap="BaseResultMap">
+        select * from production_programme where 1=1 and is_deleted = 0
+        <if test="enable != -99">
+            and enable = ${enable}
+        </if>
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="processCode !='all'">
+            and process_code like '%${processCode}%'
+        </if>
+        <if test="processName !='all'">
+            and process_name like '%${processName}%'
+        </if>
+        <if test="materialCode !='all'">
+            and material_code like '%${materialCode}%'
+        </if>
+        <if test="materialName !='all'">
+            and material_name like '%${materialName}%'
+        </if>
+        <if test="updateUser != 'all'">
+            and update_user like '%${updateUser}%'
+        </if>
+        <if test="startTime != 'all' or endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and update_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and update_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and update_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+        order by id desc
+        <if test="page >=0">
+            limit ${page} , 10
+        </if>
+    </select>
+
+
+    <!-- 获取设备列表Total -->
+    <select id="getProductionListTotal" resultType="java.lang.Integer">
+        select count(1) as total from production_programme where 1=1 and is_deleted = 0
+        <if test="enable != -99">
+            and enable = ${enable}
+        </if>
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="processCode !='all'">
+            and process_code like '%${processCode}%'
+        </if>
+        <if test="processName !='all'">
+            and process_name like '%${processName}%'
+        </if>
+        <if test="materialCode !='all'">
+            and material_code like '%${materialCode}%'
+        </if>
+        <if test="materialName !='all'">
+            and material_name like '%${materialName}%'
+        </if>
+        <if test="updateUser != 'all'">
+            and update_user like '%${updateUser}%'
+        </if>
+        <if test="startTime != 'all' or endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and update_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and update_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and update_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="getProduction" resultMap="BaseResultMap">
+        select  * from production_programme where id = #{id}
+    </select>
+
+    <select id="getDeviceName" resultType="java.lang.String">
+        select device_name as deviceName from basic_device where device_id = #{deviceId} and is_deleted = 0
+    </select>
+
+    <select id="getMaterialName" resultType="java.lang.String">
+        select material_name as materialName  from basic_materials where material_code = #{materialCOde} and is_deleted = 0
+    </select>
+
+    <select id="getProcessName" resultType="java.lang.String">
+        select process_name as processName from basic_process where process_code = #{processCode} and is_deleted = 0
+    </select>
+
+
+    <select id="isHave" resultType="java.lang.Integer">
+        select count(1) as number  from production_programme where device_id = #{deviceId} and material_code = #{materialCode}
+        <if test="productionId != null and productionId != ''">
+            and production_id = #{productionId}
+        </if>
+    </select>
+</mapper>

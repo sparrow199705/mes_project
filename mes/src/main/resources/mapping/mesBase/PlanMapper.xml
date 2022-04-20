@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.drs.mes.mapper.mesBase.PlanMapper">
+
+    <!-- 设备名称 -->
+    <select id="getDevice" resultType="java.util.Map">
+        select device_id as deviceId,device_name as deviceName from basic_device where enable = 1 and is_deleted = 0
+    </select>
+    <select id="getDeviceByMaterial" resultType="java.util.Map">
+        select device_id as deviceId,device_name as deviceName from production_programme where enable = 1 and is_deleted = 0
+        and material_code IN
+        <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+            #{materialCodes}
+        </foreach>
+        group by device_id
+    </select>
+
+    <!-- 物料名称 -->
+    <select id="getMaterial" resultType="java.util.Map">
+        select material_code as materialCode,material_name as materialName from basic_materials where 1=1 and is_deleted = 0
+    </select>
+
+    <!-- 总日产量 -->
+    <select id="getAllDayOutput" resultType="java.lang.Integer">
+        select ifnull(SUM(output) , 0) as dayoutput from statistical_production where to_days(`day`) = to_days(now())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        <if test="materialCode != 'all'">
+            and material_code IN
+            <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                #{materialCodes}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 平均小时产量 -->
+    <select id="getAVGOutput" resultType="java.lang.Double">
+        select ifnull(AVG(output) , 0.00) as output from (SELECT SUM(output) as output from statistical_production where to_days(`day`) = to_days(now())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        <if test="materialCode != 'all'">
+            and material_code IN
+            <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                #{materialCodes}
+            </foreach>
+        </if>
+          GROUP BY `hour`) t
+    </select>
+    
+    <select id="getControllerI" resultType="java.util.Map">
+        select t.currentAverage , t.time from (select (`hour` * 60 + `minute`) as ss,current_peak as
+        currentAverage,concat(hour,'点',minute,'分') as 'time' from statistical_device_current where
+        to_days(`day`) = to_days(now()) and controller_id = '1' order by  ss desc limit 12) as t ORDER BY
+        t.ss
+    </select>
+
+    <!-- 标准小时产能 -->
+    <select id="getCapacity" resultType="java.util.Map">
+        select   CONCAT(device_id,material_code) as dmid , capacity from statistical_capacity where 1=1
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        <if test="materialCode != 'all'">
+            and material_code IN
+            <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                #{materialCodes}
+            </foreach>
+        </if>
+    </select>
+    <!-- 计划小时产能 -->
+    <select id="getPlanCapacity" resultType="java.util.Map">
+        select   CONCAT(device_id,material_code) as dmid , plan_capacity as capacity from production_programme where is_deleted = 0 and enable = 1
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        <if test="materialCode != 'all'">
+            and material_code IN
+            <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                #{materialCodes}
+            </foreach>
+        </if>
+    </select>
+
+
+    <!-- 日小时级产量 -->
+    <select id="getHourOutput" resultType="java.lang.Integer">
+        select ifnull(SUM(output) , 0) as output from statistical_production where to_days(`day`) = to_days(now())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        <if test="materialCode != 'all'">
+            and material_code IN
+            <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                #{materialCodes}
+            </foreach>
+        </if>
+        and hour = #{hour}
+    </select>
+
+    <!-- 月度日级产量 -->
+    <select id="getMonthOutput" resultType="java.lang.Integer">
+        SELECT ifnull(SUM(output) , 0) as monthOutput  FROM statistical_production
+        WHERE DATE_FORMAT( `day`, '%Y%m' ) = DATE_FORMAT( CURDATE( ) , '%Y%m' )
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        <if test="materialCode != 'all'">
+            and material_code IN
+            <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                #{materialCodes}
+            </foreach>
+        </if>
+        and day = #{day};
+    </select>
+
+    <!-- 年度月级产量 -->
+        <select id="getYearOutput" resultType="java.lang.Integer">
+           SELECT ifnull(SUM(output) , 0) as yearOutput FROM statistical_production
+           WHERE YEAR(`day`)=YEAR(NOW())
+            <if test="deviceId != 'all'">
+                and device_id IN
+                <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                    #{deviceIds}
+                </foreach>
+            </if>
+            <if test="materialCode != 'all'">
+                and material_code IN
+                <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                    #{materialCodes}
+                </foreach>
+            </if>
+            and day like '${date}%';
+        </select>
+
+    <!-- 低设备OEE TOP10 -->
+    <select id="getLowOEE" resultType="java.util.Map">
+        select device_name as deviceName ,AVG(OEE) as avgOEE , SUM(qualified_products) as output ,
+        SUM(defective_products) as badoutput , AVG(actual_speed) as actualSpeed , AVG(theory_speed) as theorySpeed
+        from statistical_device_info where to_days(`day`) = to_days(now()) GROUP BY device_id ORDER BY avgOEE limit 10
+    </select>
+
+     <!-- 获取设备 -->
+    <select id="getDeviceId" resultType="java.lang.String">
+        select device_id as deviceId from basic_device where is_deteled = 0 and enable = 1
+    </select>
+    
+
+
+</mapper>

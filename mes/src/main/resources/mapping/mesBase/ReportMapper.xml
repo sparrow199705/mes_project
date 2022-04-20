@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.drs.mes.mapper.mesBase.ReportMapper">
+
+        <resultMap id="ProductionMap" type="com.drs.mes.Pojo.StatisticalProductionList">
+            <result column="id" jdbcType="INTEGER" property="id" />
+            <result column="device_id" jdbcType="VARCHAR" property="deviceId" />
+            <result column="device_name" jdbcType="VARCHAR" property="deviceName" />
+            <result column="material_code" jdbcType="VARCHAR" property="materialCode" />
+            <result column="material_name" jdbcType="VARCHAR" property="materialName" />
+        </resultMap>
+
+    <resultMap id="CapacityMap" type="com.drs.mes.Pojo.StatisticalCapacity">
+        <result column="id" jdbcType="INTEGER" property="id" />
+        <result column="device_id" jdbcType="VARCHAR" property="deviceId" />
+        <result column="device_name" jdbcType="VARCHAR" property="deviceName" />
+        <result column="material_code" jdbcType="VARCHAR" property="materialCode" />
+        <result column="material_name" jdbcType="VARCHAR" property="materialName" />
+    </resultMap>
+
+    <resultMap id="BadMap" type="com.drs.mes.Pojo.StatisticalBadProduction">
+        <result column="id" jdbcType="INTEGER" property="id" />
+        <result column="device_id" jdbcType="VARCHAR" property="deviceId" />
+        <result column="device_name" jdbcType="VARCHAR" property="deviceName" />
+        <result column="controller_id" jdbcType="VARCHAR" property="controllerId" />
+        <result column="material_code" jdbcType="VARCHAR" property="materialCode" />
+        <result column="material_name" jdbcType="VARCHAR" property="materialName" />
+        <result column="defective_type" jdbcType="VARCHAR" property="defectiveType" />
+        <result column="qualified_products" jdbcType="VARCHAR" property="qualifiedProducts" />
+        <result column="defective_products" jdbcType="VARCHAR" property="defectiveProducts" />
+    </resultMap>
+
+    <resultMap id="ParameterMap" type="com.drs.mes.Pojo.StatisticalDeviceParameter">
+        <result column="id" jdbcType="INTEGER" property="id" />
+        <result column="device_id" jdbcType="VARCHAR" property="deviceId" />
+        <result column="device_name" jdbcType="VARCHAR" property="deviceName" />
+        <result column="controller_id" jdbcType="VARCHAR" property="controllerId" />
+        <result column="update_time" jdbcType="VARCHAR" property="updateTime" />
+        <result column="effective_identification" jdbcType="VARCHAR" property="effectiveIdentification" />
+        <result column="parameter_code" jdbcType="VARCHAR" property="parameterCode" />
+        <result column="parameter_name" jdbcType="VARCHAR" property="parameterName" />
+        <result column="parameter_value" jdbcType="VARCHAR" property="parameterValue" />
+        <result column="value_data_type" jdbcType="VARCHAR" property="valueDataType" />
+        <result column="parameter_unit" jdbcType="VARCHAR" property="parameterUnit" />
+    </resultMap>
+
+
+    <resultMap id="EnergyMap" type="com.drs.mes.Pojo.StatisticalDeviceEnergy">
+        <result column="id" jdbcType="INTEGER" property="id" />
+        <result column="device_id" jdbcType="VARCHAR" property="deviceId" />
+        <result column="device_name" jdbcType="VARCHAR" property="deviceName" />
+        <result column="i_peak" jdbcType="VARCHAR" property="iPeak" />
+        <result column="i_average" jdbcType="VARCHAR" property="iAverage" />
+    </resultMap>
+
+    <select id="getProductionList" resultMap="ProductionMap">
+        select s.*,IFNULL(p.plan_capacity,0) as capacity , IFNULL((s.output / IFNULL(p.plan_capacity,0) *100),0) as finish  from statistical_production s left join production_programme p on s.device_id = p.device_id and s.material_code = p.material_code where 1=1
+        <if test="deviceId !='all'">
+            and s.device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and s.device_name like '%${deviceName}%'
+        </if>
+        <if test="materialCode !='all'">
+            and s.material_code like '%${materialCode}%'
+        </if>
+        <if test="materialName !='all'">
+            and s.material_name like '%${materialName}%'
+        </if>
+        <if test="hour != -99">
+            and s.hour = #{hour}
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and s.day between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and s.day &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and s.day between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+            order by s.day desc , s.hour desc
+            <if test="page >=0">
+                limit ${page} , 10
+            </if>
+
+    </select>
+
+
+    <select id="getProductionTotal" resultType="java.lang.Integer">
+        select count(1) as total from statistical_production where 1=1
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="materialCode !='all'">
+            and material_code like '%${materialCode}%'
+        </if>
+        <if test="materialName !='all'">
+            and material_name like '%${materialName}%'
+        </if>
+        <if test="hour != -99">
+            and hour = #{hour}
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and day between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and day &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and day between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <!-- 获取生产产能 -->
+    <select id="getCapacityList" resultMap="CapacityMap">
+        select * from statistical_capacity where 1=1
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="materialCode !='all'">
+            and material_code like '%${materialCode}%'
+        </if>
+        <if test="materialName !='all'">
+            and material_name like '%${materialName}%'
+        </if>
+            order by capacity desc
+            <if test="page >=0">
+                limit ${page} , 10
+            </if>
+    </select>
+
+
+    <!-- 获取生产产能 -->
+    <select id="getCapacityTotal" resultType="java.lang.Integer">
+        select count(1) from statistical_capacity where 1=1
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="materialCode !='all'">
+            and material_code like '%${materialCode}%'
+        </if>
+        <if test="materialName !='all'">
+            and material_name like '%${materialName}%'
+        </if>
+    </select>
+
+    <!--获取生产不良-->
+    <select id="getBadProductionList" resultMap="BadMap">
+        select * from statistical_bad_production where 1=1
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="materialCode !='all'">
+            and material_code like '%${materialCode}%'
+        </if>
+        <if test="materialName !='all'">
+            and material_name like '%${materialName}%'
+        </if>
+        <if test="hour != -99">
+            and hour = #{hour}
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and day between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and day &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and day between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+            order by day desc , hour desc
+            <if test="page >=0">
+                limit ${page} , 10
+            </if>
+    </select>
+
+    <select id="getBadProductionTotal" resultType="java.lang.Integer">
+        select count(1) as total from statistical_bad_production where 1=1
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="materialCode !='all'">
+            and material_code like '%${materialCode}%'
+        </if>
+        <if test="materialName !='all'">
+            and material_name like '%${materialName}%'
+        </if>
+        <if test="hour != -99">
+            and hour = #{hour}
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and day between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and day &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and day between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+
+    <!-- 获取设备参数 -->
+    <select id="getParameterList" resultMap="ParameterMap">
+        select * from statistical_device_parameter where 1=1
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and update_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and update_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and update_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+        order by update_time desc
+        <if test="page >=0">
+            limit ${page} , 10
+        </if>
+    </select>
+
+
+    <select id="getParameterTotal" resultType="java.lang.Integer">
+        select count(1) as total from statistical_device_parameter where 1=1
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and update_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and update_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and update_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+
+    <!-- 获取设备能耗 -->
+    <select id="getEnergyList" resultType="java.util.Map">
+        select e.device_id as deviceId , e.device_name as deviceName , e.day , e.hour , e.ep , IFNULL(b.qualified_products,0) as
+        qualifiedProducts , IFNULL(b.defective_products,0) as defectiveProducts ,
+        IFNULL(ep / (qualified_products + defective_products),0) as unitEP from statistical_device_energy e
+        LEFT JOIN statistical_bad_production b on e.device_id = b.device_id and e.day = b.day and e.hour=b.hour where 1=1
+        <if test="deviceId !='all'">
+            and e.device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and e.device_name like '%${deviceName}%'
+        </if>
+        <if test="hour != -99">
+            and e.hour = #{hour}
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and e.day between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and e.day &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and e.day between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+            order by e.day desc , e.hour
+        <if test="page >=0">
+            limit ${page} , 10
+        </if>
+    </select>
+
+
+    <select id="getEnergyTotal" resultType="java.lang.Integer">
+        select count(1) as total from statistical_device_energy where 1=1
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="hour != -99">
+            and hour = #{hour}
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and day between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and day &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and day between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="getOEEList" resultType="java.util.Map">
+        select * from statistical_device_info where 1=1
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and day between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and day &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and day between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+        order by day desc , hour
+        <if test="page >=0">
+            limit ${page} , 10
+        </if>
+    </select>
+    <select id="getOEEListTotal" resultType="java.lang.Integer">
+        select count(1) as total from statistical_device_info where 1=1
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and day between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and day &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and day between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+</mapper>

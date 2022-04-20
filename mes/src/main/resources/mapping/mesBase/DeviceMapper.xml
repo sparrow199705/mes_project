@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.drs.mes.mapper.mesBase.DeviceMapper">
+
+    <resultMap id="BaseResultMap" type="com.drs.mes.Pojo.BasicDevice">
+        <id column="id" jdbcType="INTEGER" property="id" />
+        <result column="device_id" jdbcType="VARCHAR" property="deviceId" />
+        <result column="device_name" jdbcType="VARCHAR" property="deviceName" />
+        <result column="device_category" jdbcType="VARCHAR" property="deviceCategory" />
+        <result column="device_type" jdbcType="VARCHAR" property="deviceType" />
+        <result column="device_speed" jdbcType="VARCHAR" property="deviceSpeed" />
+        <result column="is_deleted" jdbcType="VARCHAR" property="isDeleted" />
+        <result column="create_user" jdbcType="VARCHAR" property="createUser" />
+        <result column="create_time" jdbcType="VARCHAR" property="createTime" />
+        <result column="update_user" jdbcType="VARCHAR" property="updateUser" />
+        <result column="update_time" jdbcType="VARCHAR" property="updateTime" />
+    </resultMap>
+
+
+    <!-- 新增设备 -->
+    <insert id="addDevice" parameterType="com.drs.mes.Pojo.BasicDevice">
+        insert into basic_device (device_id,device_name,device_category,device_type,device_speed,enable,create_user,
+        create_time,update_user,update_time,UUID)values
+        (#{deviceId},#{deviceName},#{deviceCategory},#{deviceType},#{deviceSpeed},#{enable},
+        #{createUser},#{createTime},#{updateUser},#{updateTime},#{UUID})
+    </insert>
+
+    <!-- 设备编号是否重复 -->
+    <select id="findDeviceById" resultType="java.lang.Integer" parameterType="com.drs.mes.Pojo.BasicDevice">
+        select count(1) from basic_device where device_id = #{deviceId} and is_deleted = 0
+    </select>
+
+    <!-- 设备开关与删除 -->
+    <update id="switchDevice" parameterType="com.drs.mes.Pojo.BasicDevice">
+        update basic_device set
+        <if test="enable != -99">
+            enable = #{enable}
+        </if>
+        <if test="isDeleted != -99">
+            is_deleted = #{isDeleted}
+        </if>
+        where UUID = #{UUID} and is_deleted = 0
+    </update>
+
+    <!-- 更新设备 -->
+    <update id="updateDevice" parameterType="com.drs.mes.Pojo.BasicDevice">
+        update basic_device set device_id = #{deviceId} , device_name = #{deviceName} , device_category = #{deviceCategory} ,
+        device_type = #{deviceType} ,device_speed = #{deviceSpeed} , enable = #{enable} ,update_user = #{updateUser} ,
+        update_time=#{updateTime}where id = #{id}
+    </update>
+    <!-- 是否重复 -->
+    <select id="findUpdate" resultType="java.lang.Integer">
+        select count(1) from basic_device where device_id = #{deviceId} and UUID != #{UUID} and is_deleted = 0
+    </select>
+
+
+
+    <!-- 查询框 -->
+    <select id="fuzzySearch" resultType="java.lang.String">
+        <!-- 模糊查询设备编码 -->
+        <if test="searchKey == 'deviceId'">
+            select device_id as deviceId from basic_device
+            <if test="search != null and search != ''">
+                where device_id like '%${search}%'
+            </if>
+            group by device_id
+        </if>
+        <!-- 模糊查询设备名称 -->
+        <if test="searchKey == 'deviceName'">
+            select device_name as deviceName from basic_device
+            <if test="search != null and search != ''">
+                where device_name like '%${search}%'
+            </if>
+            group by device_name
+        </if>
+        <!-- 模糊查询设备类别 -->
+        <if test="searchKey == 'deviceCategory'">
+            select device_category as deviceCategory from basic_device
+            <if test="search != null and search != ''">
+                where device_category like '%${search}%'
+            </if>
+            group by device_category
+        </if>
+        <!-- 模糊查询设备类型 -->
+        <if test="searchKey == 'deviceType'">
+            select device_type as deviceType from basic_device
+            <if test="search != null and search != ''">
+                where device_type like '%${search}%'
+            </if>
+            group by device_type
+        </if>
+    </select>
+
+
+    <!-- 获取设备列表 -->
+    <select id="getDeviceList" resultMap="BaseResultMap">
+        select * from basic_device where 1=1 and is_deleted = 0
+        <if test="enable != -99">
+            and enable = ${enable}
+        </if>
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="deviceType !='all'">
+            and device_type like '%${deviceType}%'
+        </if>
+        <if test="deviceCategory !='all'">
+            and device_category like '%${deviceCategory}%'
+        </if>
+        <if test="updateUser != 'all'">
+            and update_user like '%${updateUser}%'
+        </if>
+        <if test="startTime != 'all' or endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and update_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and update_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and update_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+        order by id desc
+        <if test="page >=0">
+            limit ${page} , 10
+        </if>
+    </select>
+
+
+    <!-- 获取设备列表Total -->
+    <select id="getDeviceListTotal" resultType="java.lang.Integer">
+        select count(1) from basic_device where 1=1 and is_deleted = 0
+        <if test="enable != -99">
+            and enable = ${enable}
+        </if>
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="deviceType !='all'">
+            and device_type like '%${deviceType}%'
+        </if>
+        <if test="deviceCategory !='all'">
+            and device_category like '%${deviceCategory}%'
+        </if>
+        <if test="updateUser != 'all'">
+            and update_user like '%${updateUser}%'
+        </if>
+        <if test="startTime != 'all' or endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and update_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and update_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and update_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <select id="getDevice" resultMap="BaseResultMap">
+        select * from basic_device where UUID = #{UUID} and is_deleted = 0
+    </select>
+
+    <select id="getDeviceId" resultType="java.lang.String">
+        select device_id as deivceId from basic_device where is_deleted = 0 and enable = 1 limit 1
+    </select>
+    <select id="getDeviceName" resultType="java.lang.String">
+        select device_name as deviceName from basic_device where is_deleted = 0 and device_id = #{deviceId} limit 1
+    </select>
+
+    <!-- 设备关键指标 -->
+    <select id="getDeviceByDeviceId" resultType="java.util.Map">
+        select d.device_name as deviceName , ifnull(i.OEE , 0)*100 as OEE , ifnull(i.actual_speed , 0) as actualSpeed from statistical_device_info i left join basic_device d on i.device_id = d.device_id where
+        d.device_id = #{deviceId} order by d.id desc limit 1
+    </select>
+    <!-- 设备当日生产产量 -->
+    <select id="getDeviceOutput" resultType="java.lang.Integer">
+        select ifnull(sum(output),0) as dayoutput from statistical_production where to_days(`day`) = to_days(now()) and device_id = #{deviceId}
+    </select>
+    <!-- 设备当日不良产量 -->
+    <select id="getDeviceDayBad" resultType="java.lang.Integer">
+        select IFNULL(sum(defective_products),0) as badOutput from statistical_bad_production where to_days(`day`) = to_days(now()) and device_id = #{deviceId}
+    </select>
+    <!-- 获取运行状态 -->
+    <select id="getDeviceState" resultType="java.lang.String">
+        select state from collect_device_production where collect_time>=DATE_SUB(NOW(),INTERVAL 10 second) and device_id = #{deviceId} order by collect_time desc limit 1
+    </select>
+    <!-- 获取设备当日能耗 -->
+    <select id="getDeviceEP" resultType="java.lang.Double">
+        select IFNULL(sum(ep),0) as ep from statistical_device_energy where to_days(`day`) = to_days(now()) and device_id = #{deviceId}
+    </select>
+    <!-- 获取设备关键参数 -->
+    <select id="getDeviceParameter" resultType="java.util.Map">
+        select parameter_name ,parameter_value , parameter_unit from(select * from statistical_device_parameter where device_id = #{deviceId} ORDER BY update_time desc limit 10000)t GROUP BY t.parameter_name
+    </select>
+    <!-- 设备OEE平均值 -->
+    <select id="getOEEHour" resultType="java.lang.Double">
+        select IFNULL(AVG(ifnull(OEE,0)),0) from statistical_device_info where to_days(`day`) = to_days(now()) and hour = #{hour} and device_id = #{deviceId}
+    </select>
+    <!-- 获取全部设备 -->
+    <select id="getAllDevice" resultType="java.util.Map">
+        select device_name as deviceName  , device_id as deviceId from basic_device where is_deleted = 0 and enable = 1
+    </select>
+    <!-- 实时电流 -->
+    <select id="getCurrent" resultType="java.lang.Double">
+        select IFNULL(sum(current_average),0)  as average from statistical_device_current where to_days(`day`) = to_days(now()) and 'hour' = #{hour} and 'minute' = #{minute} and device_id = #{deviceId}
+    </select>
+    <!-- 报警次数统计 -->
+    <select id="getAlarmType" resultType="java.util.Map">
+        select IFNULL(sum(alarm_num) ,0) as alarmNum,alarm_type as  alarmType from statistical_device_alarm where
+        DATE_FORMAT( `day`, '%Y%m' ) = DATE_FORMAT( CURDATE( ) , '%Y%m' ) and device_id = #{deviceId} group by alarmType
+    </select>
+    <!-- 设备报警明细数据 -->
+    <select id="getAlarm" resultType="java.util.Map">
+        select * from statistical_device_alarm where to_days(`day`) = to_days(now()) and device_id = #{deviceId} order by day desc , hour desc
+    </select>
+
+    <!-- 设备报警 -->
+    <select id="getDeviceAlarm">
+        select *,IF(end_time>=DATE_SUB(NOW(),INTERVAL 10 second),'未修复','已修复') as state from collect_device_alarm where
+        to_days(collect_time) = to_days(now()) and device_id = #{deviceId} order by collect_time desc;
+    </select>
+
+    <!-- 设备更新后同步计划 -->
+    <update id="updatePro" parameterType="com.drs.mes.Pojo.BasicDevice">
+        update production_programme set device_id = #{deviceId} , device_name = #{deviceName} where device_id = #{oldDeviceId} and is_deleted = 0
+    </update>
+</mapper>

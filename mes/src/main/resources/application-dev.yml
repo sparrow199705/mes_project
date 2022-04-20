@@ -1,0 +1,35 @@
+# Web�������˿�
+server:
+  port: 8081
+
+# DataSource Config
+spring:
+  datasource:
+    mesBase:
+      driverClassName:  com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://192.168.0.23:3306/mes?useUnicode=true&useSSL=false&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      username: root
+      password: drs123456
+
+#      driverClassName:  com.mysql.cj.jdbc.Driver
+#      url: jdbc:mysql://rm-2zerb21r4u5mx7zy7no.mysql.rds.aliyuncs.com:3306/drs11?useUnicode=true&useSSL=false&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+#      username: zjdrs
+#      password: 360Darongshu()*+-
+
+
+#    second:
+#        driverClassName: com.mysql.jdbc.Driver # mysql8.0+
+#        url: jdbc:mysql://localhost:3306/drs_ops?useUnicode=true&useSSL=false&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+#        username: root
+#        password: root
+
+#mybatis:
+  mapper-locations: classpath:mapping/*Mapper.xml     #classpath����Ӧ�ôӺ���resource��·��
+  type-aliases-package: com.example.entity
+  log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+   level:
+      com.drs.mes.mapper: debug
+
+

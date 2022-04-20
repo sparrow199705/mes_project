@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.drs.mes.mapper.mesBase.EnergyMapper">
+
+    <select id="getDayEP" resultType="java.lang.Double">
+        select ifnull(sum(ep),0) as ep from statistical_device_energy where to_days(`day`) = to_days(now())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+    </select>
+    
+    <select id="getAverageEP" resultType="java.lang.Double">
+        select ifnull(avg(ep) ,0) as avgEP from statistical_device_energy where to_days(`day`) = to_days(now())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+    </select>
+    
+    <select id="getCapacity" resultType="java.lang.Double">
+        select ifnull(avg(ep) ,0) from statistical_capacity where 1=1
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 日小时级设备能耗统计 -->
+    <select id="getEnergyHour" resultType="java.lang.Double">
+        select ifnull(sum(ep) , 0) as ep from statistical_device_energy where to_days(`day`) = to_days(now())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        and hour = #{hour}
+    </select>
+
+    <!-- 月度日级设备能耗统计 -->
+    <select id="getEnergyMonth" resultType="java.lang.Double">
+        select ifnull(sum(ep) ,0) as ep , day from statistical_device_energy where DATE_FORMAT( `day`, '%Y%m' ) = DATE_FORMAT( CURDATE( ) , '%Y%m' )
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        and day = #{day}
+    </select>
+
+    <!-- 年度月级设备能耗统计 -->
+    <select id="getEnergyYear" resultType="java.lang.Double">
+        select ifnull(sum(ep) ,0) as ep  from statistical_device_energy
+        WHERE YEAR(`day`)=YEAR(NOW())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        and day like '${date}%';
+    </select>
+
+
+    <!-- 设备名称 -->
+    <select id="getDevice" resultType="java.util.Map">
+        select device_id as deviceId,device_name as deivceName from basic_device where enable = 1 and is_deleted = 0
+        <if test="materialCode != 'all'">
+            and material_code IN
+            <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                #{materialCodes}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 物料名称 -->
+    <select id="getMaterial" resultType="java.util.Map">
+        select material_code as materialCode,material_name as materialName from basic_materials where 1=1 and is_deleted = 0
+    </select>
+
+    <!-- 实时电流曲线 -->
+    <select id="getPeakI" resultType="java.lang.Double">
+        select ifnull(sum(current_peak) , 0) as sum from statistical_device_current where to_days(`day`) = to_days(now())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        and hour = #{hour}
+    </select>
+
+    <!-- 实时电流均值统计 -->
+    <select id="getAverageI" resultType="java.lang.Double">
+        select ifnull(sum(current_average) , 0) as sum from statistical_device_current where to_days(`day`) = to_days(now())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        and hour = #{hour}
+    </select>
+</mapper>

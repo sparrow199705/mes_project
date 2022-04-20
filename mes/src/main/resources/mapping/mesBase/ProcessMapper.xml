@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.drs.mes.mapper.mesBase.ProcessMapper">
+
+    <resultMap id="BaseResultMap" type="com.drs.mes.Pojo.BasicProcess">
+        <id column="id" jdbcType="INTEGER" property="id" />
+        <result column="process_code" jdbcType="VARCHAR" property="processCode" />
+        <result column="process_name" jdbcType="VARCHAR" property="processName" />
+        <result column="is_deleted" jdbcType="VARCHAR" property="isDeleted" />
+        <result column="create_user" jdbcType="VARCHAR" property="createUser" />
+        <result column="create_time" jdbcType="VARCHAR" property="createTime" />
+        <result column="update_user" jdbcType="VARCHAR" property="updateUser" />
+        <result column="update_time" jdbcType="VARCHAR" property="updateTime" />
+        <result column="process_id" jdbcType="VARCHAR" property="processId" />
+        <result column="craft_code" jdbcType="VARCHAR" property="craftCode" />
+    </resultMap>
+    <!-- 获取工艺数据列表 -->
+    <select id="getProcessList" resultMap="BaseResultMap">
+        select * from basic_process where 1=1 and is_deleted = 0
+        <if test="enable != -99">
+            and enable = ${enable}
+        </if>
+        <if test="processCode !='all'">
+            and process_code like '%${processCode}%'
+        </if>
+        <if test="processName !='all'">
+            and process_name like '%${processName}%'
+        </if>
+        <if test="updateUser != 'all'">
+            and update_user like '%${updateUser}%'
+        </if>
+        <if test="startTime != 'all' or endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and update_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and update_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and update_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+        order by id desc
+        <if test="page >=0">
+            limit ${page} , 10
+        </if>
+    </select>
+
+    <!-- 获取工艺数据列表 -->
+    <select id="getProcessListTotal" resultType="java.lang.Integer">
+        select count(1) as total from basic_process where 1=1 and is_deleted = 0
+        <if test="enable != -99">
+            and enable = ${enable}
+        </if>
+        <if test="processCode !='all'">
+            and process_code like '%${processCode}%'
+        </if>
+        <if test="processName !='all'">
+            and process_name like '%${processName}%'
+        </if>
+        <if test="updateUser != 'all'">
+            and update_user like '%${updateUser}%'
+        </if>
+        <if test="startTime != 'all' or endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and update_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and update_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and update_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <insert id="addProcess" parameterType="com.drs.mes.Pojo.BasicProcess">
+        insert into basic_process (process_code,process_name,create_user,create_time,update_user,update_time,process_id)values
+        (#{processCode},#{processName},#{createUser},#{createTime},#{updateUser},#{updateTime},#{processId})
+    </insert>
+
+    <!-- 生产规划开关与删除 -->
+    <update id="switchProcess" parameterType="com.drs.mes.Pojo.BasicProcess">
+        update basic_process set
+        <if test="enable != -99">
+            enable = #{enable}
+        </if>
+        <if test="isDeleted != -99">
+            is_deleted = #{isDeleted}
+        </if>
+        where process_id = #{processId} and is_deleted = 0
+    </update>
+
+    <select id="findUpdate" resultType="java.lang.Integer">
+        select count(1) from basic_process where is_deleted = 0 and process_code = #{processCode}
+        <if test="processId != null">
+            and process_id != #{processId}
+        </if>
+    </select>
+
+    <select id="getProcess" resultMap="BaseResultMap">
+        select * from basic_process where is_deleted = 0 and process_id = #{processId}
+    </select>
+
+    <!-- 通过craft_code获取工序 -->
+    <select id="getProcessByCraft" resultType="java.util.Map">
+        select c.order_num as orderNum , p.process_code as processCode , p.process_name as processName from basic_process p left join craft_process c on c.process_code = p.process_code
+        where p.is_deleted = 0 and  c.craft_code = #{craftCode} order by order_num
+    </select>
+
+    <update id="updateCraft" parameterType="com.drs.mes.Pojo.BasicDevice">
+        update craft_process set process_code = #{processCode} where process_code = #{oldProcessCode}
+    </update>
+
+
+</mapper>

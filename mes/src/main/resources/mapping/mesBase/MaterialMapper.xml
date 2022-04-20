@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.drs.mes.mapper.mesBase.MaterialMapper">
+
+        <resultMap id="BaseResultMap" type="com.drs.mes.Pojo.BasicMaterials">
+            <id column="id" jdbcType="INTEGER" property="id" />
+            <result column="material_code" jdbcType="VARCHAR" property="materialCode" />
+            <result column="material_name" jdbcType="VARCHAR" property="materialName" />
+            <result column="material_type" jdbcType="VARCHAR" property="materialType" />
+            <result column="is_deleted" jdbcType="VARCHAR" property="materialSeries" />
+            <result column="create_user" jdbcType="VARCHAR" property="createUser" />
+            <result column="create_time" jdbcType="VARCHAR" property="createTime" />
+            <result column="update_user" jdbcType="VARCHAR" property="updateUser" />
+            <result column="update_time" jdbcType="VARCHAR" property="updateTime" />
+            <result column="material_id" jdbcType="VARCHAR" property="materialId" />
+        </resultMap>
+
+    <!-- 获取物料列表 -->
+    <select id="getMaterialList" resultMap="BaseResultMap">
+        select * from basic_materials where 1=1 and is_deleted = 0
+        <if test="enable != -99">
+            and enable = ${enable}
+        </if>
+        <if test="materialCode !='all'">
+            and material_code like '%${materialCode}%'
+        </if>
+        <if test="materialName !='all'">
+            and material_name like '%${materialName}%'
+        </if>
+        <if test="materialType !='all'">
+            and material_type like '%${materialType}%'
+        </if>
+        <if test="materialSeries !='all'">
+            and material_series like '%${materialSeries}%'
+        </if>
+        <if test="updateUser != 'all'">
+            and update_user like '%${updateUser}%'
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and update_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and update_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and update_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+        order by id desc
+        <if test="page >=0">
+            limit ${page} , 10
+         </if>
+    </select>
+
+    <!-- 获取物料列表数量 -->
+    <select id="getMaterialListTotal" resultType="java.lang.Integer">
+        select count(1) as total from basic_materials where 1=1 and is_deleted = 0
+        <if test="enable != -99">
+            and enable = ${enable}
+        </if>
+        <if test="materialCode !='all'">
+            and material_code like '%${materialCode}%'
+        </if>
+        <if test="materialName !='all'">
+            and material_name like '%${materialName}%'
+        </if>
+        <if test="materialType !='all'">
+            and material_type like '%${materialType}%'
+        </if>
+        <if test="materialSeries !='all'">
+            and material_series like '%${materialSeries}%'
+        </if>
+        <if test="updateUser != 'all'">
+            and update_user like '%${updateUser}%'
+        </if>
+        <if test="startTime != 'all' or endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and update_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and update_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and update_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <!-- 添加物料 -->
+    <insert id="addMaterial" parameterType="com.drs.mes.Pojo.BasicMaterials">
+        insert into basic_materials (material_code,material_name,material_type,material_series,unit,enable,create_user,
+        create_time,update_user,update_time,material_id)values
+        (#{materialCode},#{materialName},#{materialType},#{materialSeries},#{unit},#{enable},
+        #{createUser},#{createTime},#{updateUser},#{updateTime},#{materialId})
+    </insert>
+
+    <!-- 物料编号是否重复 -->
+    <select id="findMaterialByCode" resultType="java.lang.Integer" parameterType="com.drs.mes.Pojo.BasicMaterials">
+        select count(1) from basic_materials where material_code = #{materialCode} and is_deleted = 0
+    </select>
+
+    <!-- 物料开关与删除 -->
+    <update id="switchMaterial" parameterType="com.drs.mes.Pojo.BasicMaterials">
+        update basic_materials set
+        <if test="enable != -99">
+            enable = #{enable}
+        </if>
+        <if test="isDeleted != -99">
+            is_deleted = #{isDeleted}
+        </if>
+        where material_id = #{materialId}
+    </update>
+
+    <!-- 是否重复 -->
+    <select id="findUpdate" resultType="java.lang.Integer">
+        select count(1) from basic_materials where material_code = #{materialCode} and material_id != #{materialId} and is_deleted = 0
+    </select>
+
+    <!-- 查询框查询物料类型 -->
+    <select id="fuzzySearch" resultType="java.lang.String">
+        <!-- 模糊查询物料编码 -->
+        <if test="searchKey == 'materialCode'">
+            select material_code as materialCode from basic_materials
+            <if test="search != null and search != ''">
+                where material_code like '%${search}%'
+            </if>
+            group by material_code
+        </if>
+        <!-- 模糊查询物料名称 -->
+        <if test="searchKey == 'materialName'">
+            select material_name as materialName from basic_materials
+            <if test="search != null and search != ''">
+                where material_name like '%${search}%'
+            </if>
+            group by material_name
+        </if>
+        <!-- 模糊查询物料类型 -->
+        <if test="searchKey == 'materialType'">
+            select material_type as materialType from basic_materials
+            <if test="search != null and search != ''">
+                where material_type like '%${search}%'
+            </if>
+            group by material_type
+        </if>
+        <!-- 模糊查询物料系列 -->
+        <if test="searchKey == 'materialSeries'">
+            select material_series as materialSeries from basic_materials
+            <if test="search != null and search != ''">
+                where material_series like '%${search}%'
+            </if>
+            group by material_series
+        </if>
+    </select>
+
+    <select id="getMaterial" resultMap="BaseResultMap">
+        select * from basic_materials where material_id=#{materialId} and is_deleted = 0
+    </select>
+
+    <!-- 物料更新后同步计划 -->
+    <update id="updatePro" parameterType="com.drs.mes.Pojo.BasicDevice">
+        update production_programme set material_code = #{materialCode} , material_name = #{materialName} where material_code = #{oldMaterialCode} and is_deleted = 0
+    </update>
+    <update id="updateCraft" parameterType="com.drs.mes.Pojo.BasicDevice">
+        update basic_craft set material_code = #{materialCode} , material_name = #{materialName} where material_code = #{oldMaterialCode} and is_deleted = 0
+    </update>
+</mapper>

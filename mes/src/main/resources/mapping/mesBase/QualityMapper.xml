@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.drs.mes.mapper.mesBase.QualityMapper">
+
+    <!-- 不良类型 -->
+    <select id="badType" resultType="java.util.Map">
+        select defective_type as defectiveType from statistical_bad_production group by defective_type
+    </select>
+
+    <!-- 良品数 -->
+    <select id="getQualifiedNum" resultType="java.util.Map">
+        select SUM(qualified_products) as qualifiedNum , sum(defective_products) as badNum from statistical_bad_production where to_days(`day`) = to_days(now())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        <if test="materialCode != 'all'">
+            and material_code IN
+            <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                #{materialCodes}
+            </foreach>
+        </if>
+        <if test="defectiveType != 'all'">
+            and defective_type IN
+            <foreach collection="defectiveTypes" item="defectiveTypes" index="index" open="(" close=")" separator=",">
+                #{defectiveTypes}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 获取日不良统计 -->
+    <select id="getDayBadNum" resultType="java.lang.Integer">
+        select ifnull(sum(defective_products) , 0) as badNum from statistical_bad_production where to_days(`day`) = to_days(now())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        <if test="materialCode != 'all'">
+            and material_code IN
+            <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                #{materialCodes}
+            </foreach>
+        </if>
+        <if test="defectiveType != 'all'">
+            and defective_type IN
+            <foreach collection="defectiveTypes" item="defectiveTypes" index="index" open="(" close=")" separator=",">
+                #{defectiveTypes}
+            </foreach>
+        </if>
+        and hour = #{hour}
+    </select>
+
+    <!-- 月度日级不良统计 -->
+    <select id="getMonthBadNum" resultType="java.lang.Integer">
+        select ifnull(sum(defective_products) , 0) as badNum  from statistical_bad_production
+        where DATE_FORMAT( `day`, '%Y%m' ) = DATE_FORMAT( CURDATE( ) , '%Y%m' )
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        <if test="materialCode != 'all'">
+            and material_code IN
+            <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                #{materialCodes}
+            </foreach>
+        </if>
+        <if test="defectiveType != 'all'">
+            and defective_type IN
+            <foreach collection="defectiveTypes" item="defectiveTypes" index="index" open="(" close=")" separator=",">
+                #{defectiveTypes}
+            </foreach>
+        </if>
+       and day = #{day}
+    </select>
+
+    <!-- 年度月级不良 -->
+    <select id="getYearBadNum" resultType="java.lang.Integer">
+        select ifnull(sum(defective_products) , 0) as badNum from statistical_bad_production
+        WHERE YEAR(`day`)=YEAR(NOW())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        <if test="materialCode != 'all'">
+            and material_code IN
+            <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                #{materialCodes}
+            </foreach>
+        </if>
+        <if test="defectiveType != 'all'">
+            and defective_type IN
+            <foreach collection="defectiveTypes" item="defectiveTypes" index="index" open="(" close=")" separator=",">
+                #{defectiveTypes}
+            </foreach>
+        </if>
+        and day like '${date}%';
+    </select>
+
+    <!-- 产品不良分类 -->
+    <select id="getBadTypeNum" resultType="java.util.Map">
+        select sum(defective_products) as badNum , defective_type as typeName from statistical_bad_production where 1=1
+        <choose>
+            <when test="dimensionality =='day'">
+               and to_days(`day`) = to_days(now())
+            </when>
+            <when test="dimensionality =='month'">
+                and DATE_FORMAT( `day`, '%Y%m' ) = DATE_FORMAT( CURDATE( ) , '%Y%m' )
+            </when>
+            <otherwise>
+                and YEAR(`day`)=YEAR(NOW())
+            </otherwise>
+        </choose>
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        <if test="materialCode != 'all'">
+            and material_code IN
+            <foreach collection="materialCodes" item="materialCodes" index="index" open="(" close=")" separator=",">
+                #{materialCodes}
+            </foreach>
+        </if>
+        <if test="defectiveType != 'all'">
+            and defective_type IN
+            <foreach collection="defectiveTypes" item="defectiveTypes" index="index" open="(" close=")" separator=",">
+                #{defectiveTypes}
+            </foreach>
+        </if>
+        GROUP BY typeName
+    </select>
+    
+    <!-- 电流均值分布图 -->
+    <select id="getElectricity" resultType="java.util.Map">
+        select count(1) as num , current_average as currentAverage from statistical_device_current where to_days(`day`) = to_days(now())
+        <if test="deviceId != 'all'">
+            and device_id IN
+            <foreach collection="deviceIds" item="deviceIds" index="index" open="(" close=")" separator=",">
+                #{deviceIds}
+            </foreach>
+        </if>
+        group by currentAverage
+    </select>
+    <!-- 高不良率TOP10 -->
+    <select id="getBadTop10" resultType="java.util.Map">
+        select material_name as materialName,a.device_name as deviceName , defective_type as defectiveType ,qualified_products as qualifiedProducts ,defective_products as defectiveProducts,a.defective_products /(a.qualified_products + a.defective_products)*100 as badRate from
+        statistical_bad_production a ORDER BY badRate desc LIMIT 10
+    </select>
+    <!-- 质量预警 -->
+    <select id="getWarning" resultType="java.util.Map">
+        select object,object_name as objectName , warning_time as warningTime , warning_type as warningType , warning_info  as  warningInfo from statistical_production_early_warning where 1=1 order by warningTime desc
+    </select>
+
+</mapper>

@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.drs.mes.mapper.mesBase.AlarmMapper">
+
+    <resultMap id="AlarmMap" type="com.drs.mes.Pojo.StatisticalDeviceAlarm">
+        <result column="id" jdbcType="INTEGER" property="id" />
+        <result column="device_id" jdbcType="VARCHAR" property="deviceId" />
+        <result column="device_name" jdbcType="VARCHAR" property="deviceName" />
+        <result column="controller_id" jdbcType="VARCHAR" property="controllerId" />
+        <result column="alarm_code" jdbcType="VARCHAR" property="alarmCode" />
+        <result column="alarm_type" jdbcType="VARCHAR" property="alarmType" />
+        <result column="start_time" jdbcType="VARCHAR" property="startTime" />
+        <result column="end_time" jdbcType="VARCHAR" property="endTime" />
+        <result column="alarm_time_length" jdbcType="VARCHAR" property="alarmTimeLength" />
+        <result column="alarm_num" jdbcType="VARCHAR" property="alarmNum" />
+    </resultMap>
+
+    <resultMap id="warningMap" type="com.drs.mes.Pojo.StatisticalProductionEarlyWarning">
+        <result column="id" jdbcType="INTEGER" property="id" />
+        <result column="object_id" jdbcType="VARCHAR" property="objectId" />
+        <result column="object_name" jdbcType="VARCHAR" property="objectName" />
+        <result column="warning_time" jdbcType="VARCHAR" property="warningTime" />
+        <result column="warning_type" jdbcType="VARCHAR" property="warningType" />
+        <result column="warning_info" jdbcType="VARCHAR" property="warningInfo" />
+    </resultMap>
+
+
+
+
+    <!-- 获取设备告警统计列表 -->
+    <select id="getAlarmList" resultMap="AlarmMap">
+        select * from statistical_device_alarm where 1=1
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="alarmType != 'all'">
+            and alarm_type like '%${alarmType}%'
+        </if>
+        <if test="hour != -99">
+            and hour = #{hour}
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and day between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and day &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and day between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+            order by day desc , hour desc
+        <if test="page >=0">
+            limit ${page} , 10
+        </if>
+    </select>
+
+
+    <select id="getAlarmTotal" resultType="java.lang.Integer">
+        select count(1) as total from statistical_device_alarm where 1=1
+        <if test="deviceId !='all'">
+            and device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and device_name like '%${deviceName}%'
+        </if>
+        <if test="alarmType != 'all'">
+            and alarm_type like '%${alarmType}%'
+        </if>
+        <if test="hour != -99">
+            and hour = #{hour}
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and day between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and day &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and day between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+
+    <!-- 告警明细  -->
+    <select id="getDetailList" resultType="java.util.Map">
+        select a.device_id , d.device_name as deviceName , a.alarm_description as alarmDescription , a.alarm_type as alarmType , a.start_time as startTime ,
+        a.end_time as endTime ,TIMESTAMPDIFF(MINUTE,a.start_time,ifnull(a.end_time , now())) as time  from collect_device_alarm a left join basic_device d on a.device_id =
+        d.device_id where 1=1
+        <if test="deviceId !='all'">
+            and a.device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and d.device_name like '%${deviceName}%'
+        </if>
+        <if test="alarmDescription !='all'">
+            and a.alarm_description like '%${alarmDescription}%'
+        </if>
+        <if test="alarmType !='all'">
+            and a.alarm_type like '%${alarmType}%'
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and start_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and start_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and start_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+        order by start_time  desc , end_time desc
+        <if test="page >=0">
+            limit ${page} , 10
+        </if>
+    </select>
+
+    <select id="getDetailTotal" resultType="java.lang.Integer">
+        select count(1) as total  from collect_device_alarm a left join basic_device d on a.device_id =
+        d.device_id where 1=1
+        <if test="deviceId !='all'">
+            and a.device_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and d.device_name like '%${deviceName}%'
+        </if>
+        <if test="alarmDescription !='all'">
+            and a.alarm_description like '%${alarmDescription}%'
+        </if>
+        <if test="alarmType !='all'">
+            and a.alarm_type like '%${alarmType}%'
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and start_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and start_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and start_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <!-- 告警明细查询框 -->
+    <select id="SearchDetail" resultType="java.lang.String">
+        <!-- 模糊查询报警描述 -->
+        <if test="searchKey == 'alarmDescription'">
+            select alarm_description as alarmDescription from collect_device_alarm
+            <if test="search != null and search != ''">
+                where alarm_description like '%${search}%'
+            </if>
+            group by alarm_description
+        </if>
+        <!-- 模糊查询报警类型 -->
+        <if test="searchKey == 'alarmType'">
+            select alarm_type as alarmType from collect_device_alarm
+            <if test="search != null and search != ''">
+                where alarm_type like '%${search}%'
+            </if>
+            group by alarm_type
+        </if>
+    </select>
+
+
+
+    <!-- 生产预警 -->
+    <select id="getWarningList" resultMap="warningMap">
+        select * from statistical_production_early_warning where 1=1
+        <if test="deviceId !='all'">
+            and object_id    like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and object_name like '%${deviceName}%'
+        </if>
+        <if test="warningType != 'all'">
+            and warning_type like '%${warningType}%'
+        </if>
+        <if test="warningInfo != 'all'">
+            and warning_info like '%${warningInfo}%'
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and warning_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and warning_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and warning_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+        order by warning_time desc
+        <if test="page >=0">
+            limit ${page} , 10
+        </if>
+    </select>
+
+
+    <select id="getWarningTotal" resultType="java.lang.Integer">
+        select count(1) as total from statistical_production_early_warning where 1=1
+        <if test="deviceId !='all'">
+            and object_id like '%${deviceId}%'
+        </if>
+        <if test="deviceName !='all'">
+            and object_name like '%${deviceName}%'
+        </if>
+        <if test="warningType != 'all'">
+            and warning_type like '%${warningType}%'
+        </if>
+        <if test="warningInfo != 'all'">
+            and warning_info like '%${warningInfo}%'
+        </if>
+        <if test="startTime != 'all' and endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and warning_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and warning_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and warning_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+</mapper>

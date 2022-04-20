@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.drs.mes.mapper.mesBase.CraftMapper">
+
+    <resultMap id="BaseResultMap" type="com.drs.mes.Pojo.BasicCraft">
+        <id column="id" jdbcType="INTEGER" property="id" />
+        <result column="craft_id" jdbcType="VARCHAR" property="craftId" />
+        <result column="craft_code" jdbcType="VARCHAR" property="craftCode" />
+        <result column="production_versions" jdbcType="VARCHAR" property="productionVersions" />
+        <result column="is_deleted" jdbcType="VARCHAR" property="isDeleted" />
+        <result column="create_user" jdbcType="VARCHAR" property="createUser" />
+        <result column="create_time" jdbcType="VARCHAR" property="createTime" />
+        <result column="update_user" jdbcType="VARCHAR" property="updateUser" />
+        <result column="update_time" jdbcType="VARCHAR" property="updateTime" />
+        <result column="material_code" jdbcType="VARCHAR" property="materialCode" />
+        <result column="material_name" jdbcType="VARCHAR" property="materialName" />
+    </resultMap>
+
+    <insert id="addCraft">
+        insert into basic_craft (craft_id,craft_code,production_versions,material_code,material_name,enable,create_user,create_time,update_user,update_time)values
+        (#{craftId},#{craftCode},#{productionVersions},#{materialCode},#{materialName},#{enable},#{createUser},#{createTime},#{updateUser},#{updateTime})
+    </insert>
+
+    <select id="isHave" resultType="java.lang.Integer">
+        select count(1) as number from basic_craft where craft_code = #{craftCode} and is_deleted = 0
+    </select>
+
+    <select id="findUpdate" resultType="java.lang.Integer">
+        select count(1) as number from basic_craft where craft_id != #{craftId} and is_deleted = 0 and craft_code = #{craftCode}
+    </select>
+
+    <update id="switchCraft">
+        update basic_craft set
+        <if test="enable != -99">
+            enable = #{enable}
+        </if>
+        <if test="isDeleted != -99">
+            is_deleted = #{isDeleted}
+        </if>
+        where craft_id = #{craftId} and is_deleted = 0
+    </update>
+
+    <select id="getCraftById" resultMap="BaseResultMap">
+        select * from basic_craft where is_deleted = 0 and craft_id = #{craftId}
+    </select>
+
+    <insert id="addProcess">
+        insert into craft_process (craft_code,process_code,order_num)values(#{craftCode},#{processCode},#{order})
+    </insert>
+
+    <select id="findPro" resultType="java.lang.Integer">
+        select count(1) as total from craft_process where craft_code = #{craftCode} and process_code = #{processCode}
+    </select>
+
+    <update id="updateProcess">
+        update craft_process set craft_code = #{craftCode} where craft_code = #{oldCraftCode}
+    </update>
+
+    <select id="getCraftList" resultMap="BaseResultMap">
+        select * from basic_craft where 1=1 and is_deleted = 0
+        <if test="enable != -99">
+            and enable = ${enable}
+        </if>
+        <if test="craftCode !='all'">
+            and craft_code like '%${craftCode}%'
+        </if>
+        <if test="productionVersions !='all'">
+            and production_versions like '%${productionVersions}%'
+        </if>
+        <if test="materialCode !='all'">
+            and material_code like '%${materialCode}%'
+        </if>
+        <if test="materialName !='all'">
+            and material_name like '%${materialName}%'
+        </if>
+        <if test="updateUser != 'all'">
+            and update_user like '%${updateUser}%'
+        </if>
+        <if test="startTime != 'all' or endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and update_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and update_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and update_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+        order by id desc
+        <if test="page >=0">
+            limit ${page} , 10
+        </if>
+    </select>
+
+    <select id="getCraftTotal" resultType="java.lang.Integer">
+        select count(1) as total from basic_craft where 1=1 and is_deleted = 0
+        <if test="enable != -99">
+            and enable = ${enable}
+        </if>
+        <if test="craftCode !='all'">
+            and craft_code like '%${craftCode}%'
+        </if>
+        <if test="productionVersions !='all'">
+            and production_versions like '%${productionVersions}%'
+        </if>
+        <if test="materialCode !='all'">
+            and material_code like '%${materialCode}%'
+        </if>
+        <if test="materialName !='all'">
+            and material_name like '%${materialName}%'
+        </if>
+        <if test="updateUser != 'all'">
+            and update_user like '%${updateUser}%'
+        </if>
+        <if test="startTime != 'all' or endTime != 'all'">
+            <choose>
+                <when test="startTime != 'all' and endTime == 'all'">
+                    and update_time between  #{startTime}  and NOW()
+                </when>
+                <when test="startTime == 'all' and endTime !='all'">
+                    and update_time &lt; date_sub(#{endTime},interval -1 day)
+                </when>
+                <otherwise>
+                    and update_time between  #{startTime}  and date_sub(#{endTime},interval -1 day)
+                </otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <!-- 查询框查询工艺数据 -->
+    <select id="fuzzySearch" resultType="java.lang.String">
+        <!-- 模糊查询物料编码 -->
+        <if test="searchKey == 'craftCode'">
+            select craft_code as craftCode from basic_craft
+            <if test="search != null and search != ''">
+                where craft_code like '%${search}%'
+            </if>
+            group by craft_code
+        </if>
+        <!-- 模糊查询生产版本 -->
+        <if test="searchKey == 'productionVersions'">
+            select production_versions as productionVersions from basic_craft
+            <if test="search != null and search != ''">
+                where production_versions like '%${search}%'
+            </if>
+            group by production_versions
+        </if>
+    </select>
+
+    <delete id="deletePro">
+         delete from craft_process where craft_code = #{craftCode}
+         <if test="processCode != null and processCode != ''">
+             and process_code = #{processCode}
+         </if>
+    </delete>
+    
+    <select id="getProOrder" resultType="java.util.Map">
+        select ifnull(order_num,0) as orderNum from craft_process where craft_code = #{craftCode} order by order_num desc limit 1
+    </select>
+
+</mapper>

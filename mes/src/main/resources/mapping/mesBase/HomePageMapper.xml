@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.drs.mes.mapper.mesBase.HomePageMapper">
+
+
+    <!-- 日产量 -->
+    <select id="getDayOutput" resultType="java.util.Map">
+        select ifnull(SUM(output) ,0) as dayoutput , material_name as materialName from statistical_production where to_days(`day`) = to_days(now())  GROUP BY material_code
+    </select>
+    <!-- 日产量 -->
+    <select id="getDayOutputByM" resultType="java.lang.Integer">
+        select ifnull(SUM(output) ,0) as dayoutput  from statistical_production where to_days(`day`) = to_days(now()) and  material_name like '%${materialName}%'
+    </select>
+
+    <!-- 月产量 -->
+    <select id="getMothOutput" resultType="java.util.Map">
+        select ifnull(SUM(output) ,0) as monthOutput ,LEFT(material_name , 2) as materialName from statistical_production where DATE_FORMAT( `day`, '%Y%m' ) =DATE_FORMAT( CURDATE( ) , '%Y%m' )   GROUP BY materialName order by monthOutput
+    </select>
+
+
+    <!-- 日产品不良数 -->
+    <select id="getBadOutput" resultType="java.util.Map">
+        select ifnull(SUM(defective_products) , 0) as bad,defective_type as defectiveType from statistical_bad_production where to_days(`day`) = to_days(now()) GROUP BY defective_type
+    </select>
+    <!-- 日产量总数 -->
+    <select id="getAllDayOutput" resultType="java.lang.Integer">
+        select ifnull(SUM(output) , 0) as dayoutput from statistical_production where to_days(`day`) = to_days(now())
+    </select>
+    
+    <!-- 设备OEE平均值 -->
+    <select id="getOEE" resultType="java.lang.Double">
+        select ifnull(AVG(OEE) , 0) from statistical_device_info where to_days(`day`) = to_days(now())
+    </select>
+
+    <!-- 设备OEE平均值 -->
+    <select id="getOEEByD" resultType="java.lang.Double">
+        select ifnull(AVG(OEE) , 0) from statistical_device_info where to_days(`day`) = to_days(now()) and device_id = #{deviceId}
+    </select>
+
+    <!-- 获取当日不良总数 -->
+    <select id="getAllBadOutput" resultType="java.lang.Integer">
+        select ifnull(SUM(defective_products),0)  from statistical_bad_production where to_days(`day`) = to_days(now())
+    </select>
+
+    <!-- 设备产品不合格数  -->
+    <select id="getBadByD" resultType="java.lang.Integer">
+        select ifnull(SUM(defective_products),0)  from statistical_bad_production where to_days(`day`) = to_days(now()) and device_id = #{deviceId}
+    </select>
+
+    <!-- 获取设备当日产量 -->
+    <select id="getOutputByD" resultType="java.lang.Integer">
+        select ifnull(SUM(output) , 0) as dayoutput from statistical_production where to_days(`day`) = to_days(now()) and device_id = #{deviceId}
+    </select>
+
+    <!-- 实时能耗 -->
+    <select id="getTimeEP" resultType="java.util.Map">
+        select ifnull(SUM(ep) ,0) as ep,device_name as deviceName ,device_id as deviceId from statistical_device_energy where to_days(`day`) = to_days(now()) GROUP BY device_id
+    </select>
+
+    <!-- 当日能耗总和 -->
+        <select id="getAllEP" resultType="java.lang.Integer">
+            select ifnull(SUM(ep) ,0) as allEP from statistical_device_energy where to_days(`day`) = to_days(now())
+        </select>
+
+    <!-- 总设备数 -->
+    <select id="getDeviceNum" resultType="java.lang.Integer">
+        select ifnull(count(1),0) as deviceNum  from basic_device where is_deleted = 0 and enable =1
+    </select>
+
+    <!-- 获取设备状态 -->
+    <select id="getDeviceState" resultType="java.lang.String">
+       select state  from collect_device_production where collect_time>=DATE_SUB(NOW(),INTERVAL 10 second )
+       and device_id = #{deviceId} order by collect_time DESC limit 1;
+    </select>
+
+    <!-- 获取状态数量 -->
+    <select id="getOnlineDevice" resultType="java.util.Map">
+    SELECT ifnull(COUNT(1) , 0) as num , state from(select * from(select * from collect_device_production
+    where collect_time>=DATE_SUB(NOW(),INTERVAL 10 second)order by collect_time DESC LIMIT 1000) t group by device_id LIMIT 1000) a
+    GROUP BY state
+    </select>
+
+    <!-- 报警统计 -->
+    <select id="getAlarmType" resultType="java.util.Map">
+        select ifnull(sum(alarm_num) , 0) as alarmNum,alarm_type as  alarmType from statistical_device_alarm where
+        to_days(`day`) = to_days(now()) group by alarmType
+    </select>
+
+    <!-- 获取所有设备 -->
+    <select id="getAllDevice" resultType="java.util.Map">
+        select device_id as deviceId , device_name as device_name from basic_device where is_deleted = 0 and enable = 1
+    </select>
+
+    <!-- 生产预警分类统计 -->
+    <select id="getWarningType" resultType="java.util.Map">
+        SELECT count(1) as count , warning_type as warningType from  statistical_production_early_warning where to_days(warning_time) = to_days(now()) GROUP BY warning_type
+    </select>
+
+</mapper>
