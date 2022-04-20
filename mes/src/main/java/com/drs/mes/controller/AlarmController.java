@@ -36,7 +36,7 @@ public class AlarmController extends BaseController{
         int page = 0;
         if ((Integer)post.get("page") != -1){
             page =((Integer)post.get("page")-1)*10;
-        }else {
+        }else {   
             page = -1;
         }
         List<StatisticalDeviceAlarm> alarmList = alarmService.getAlarmList(post.get("deviceId").toString(),post.get("deviceName").toString(),
